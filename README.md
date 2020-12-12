@@ -1,2 +1,2 @@
 # 625FinalProject
-This is the Biostats 625 Final Project
+This is the Biostats 625 Final Group Project
