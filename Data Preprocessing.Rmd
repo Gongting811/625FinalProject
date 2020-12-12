@@ -20,7 +20,7 @@ census19 = read.table("pppub19.csv", header=T, sep=',')
 
 All the categorical variables were encoded numerically in the original dataset, so the first step I did was to encode them all in the proper categorical form. I then did the Backward Elimination with "PEARNVAL" as the response variable and get a set of features as following: 
 
-Demographic Variables:'A_AGE', 'PRDTRACE', 'A_SEX', 'A_HGA', 'A_MARITL', 'PEHSPNON', 'MIG_ST', 'MIG_DIV';
+Demographic Variables:'A_AGE', 'PRDTRACE', 'A_SEX', 'A_HGA', 'A_MARITL', 'PEHSPNON', 'MIG_DIV';
 Employment Variables: 'A_LFSR', 'A_USLHRS', 'A_CLSWKR', 'A_MJIND', 'A_MJOCC';
 Health Variables: 'MOOP', 'HEA';
 
