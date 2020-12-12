@@ -1,0 +1,249 @@
+---
+title: "625 final project"
+output: pdf_document
+---
+
+This is a draft of what I did for data-preprocessing. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(haven)
+library(dplyr)
+library(ggfortify)
+library(survival)
+library(ggplot2)
+library(broom)
+```
+
+
+```{r}
+census19 = read.table("pppub19.csv", header=T, sep=',')
+```
+
+All the categorical variables were encoded numerically in the original dataset, so the first step I did was to encode them all in the proper categorical form. I then did the Backward Elimination with "PEARNVAL" as the response variable and get a set of features as following: 
+
+Demographic Variables:'A_AGE', 'PRDTRACE', 'A_SEX', 'A_HGA', 'A_MARITL', 'PEHSPNON', 'MIG_ST', 'MIG_DIV';
+Employment Variables: 'A_LFSR', 'A_USLHRS', 'A_CLSWKR', 'A_MJIND', 'A_MJOCC';
+Health Variables: 'MOOP', 'HEA';
+
+There are several different variables denoting income. I left them all out as covariates when doing the Backward Elimination: 
+
+Income Variables that were not included: 'ERN_VAL', 'A_HRSPAY', 'WSAL_VAL', 'DIV_VAL', 'RNT_VAL', 'DSAB_VAL', 'ED_VAL', 'FIN_VAL', 'INT_VAL', 'OI_VAL'
+
+
+```{r}
+c_temp = census19[ , c('PEARNVAL', 'A_AGE', 'PRDTRACE', 'A_SEX', 'A_HGA', 'A_MARITL','PEHSPNON', 'MIG_DIV', 'A_LFSR', 'A_USLHRS', 'A_CLSWKR', 'A_MJIND', 'A_MJOCC', 'MOOP', 'HEA')]
+```
+
+Employment Variables:
+
+Labor Force Status (A_LFSR):
+```{r}
+c_temp[c_temp['A_LFSR'] == 7, 'A_LFSR'] = 5
+c_temp$A_LFSR = factor(c_temp$A_LFSR)
+labels1 = c('Children or Armed Forces', 'Working' ,'With job, not at work', 'Unemployed, looking for work', 'Unemployed, on layoff','Not in labor force')
+levels(c_temp$A_LFSR)=labels1
+```
+
+```{r}
+A_LFSR_plot = ggplot(c_temp,aes(x=A_LFSR)) + 
+  geom_bar()
+A_LFSR_plot + theme(axis.text.x = element_text(angle = 45, vjust = 1.0, hjust=1))
+```
+Only keep the "working" category.
+
+Then check worker classes (A_CLSWKR):
+```{r}
+c_temp1 = c_temp[c_temp$A_LFSR == "Working",]
+c_temp1$A_CLSWKR = factor(c_temp1$A_CLSWKR)
+labels2 = c('Private', 'Federal government', 'State government', 'Local government', 'Self-employed-incorporated', 'Self-employed-not incorporated', 'Without pay')
+levels(c_temp1$A_CLSWKR)=labels2
+```
+
+```{r}
+A_CLSWKR_plot = ggplot(c_temp1,aes(x=A_CLSWKR)) + 
+  geom_bar()
+A_CLSWKR_plot + theme(axis.text.x = element_text(angle = 45, vjust = 1.0, hjust=1))
+```
+
+```{r}
+levels(c_temp1$A_CLSWKR)[levels(c_temp1$A_CLSWKR)%in% c("Federal government", "State government", "Local government")] = "Government"
+
+levels(c_temp1$A_CLSWKR)[levels(c_temp1$A_CLSWKR)%in% c("Self-employed-incorporated", "Self-employed-not incorporated")] = "Self-employed"
+
+c_temp2 = c_temp1[c_temp1$A_CLSWKR != "Without pay", ]
+A_CLSWKR_plot = ggplot(c_temp2,aes(x=A_CLSWKR)) + 
+  geom_bar()
+A_CLSWKR_plot + theme(axis.text.x = element_text(angle = 45, vjust = 1.0, hjust=1))
+
+```
+
+Set PEARNVAL > 0:
+```{r}
+c_temp3 = c_temp2[c_temp2$PEARNVAL > 0, ]
+```
+
+Dropping outliers of PEARNVAL:
+```{r}
+quantile(c_temp3$PEARNVAL, 0.01)
+c_temp3 = c_temp3[c_temp3$PEARNVAL >= 1200, ]
+quantile(c_temp3$PEARNVAL, 0.95)
+quantile(c_temp3$PEARNVAL, 0.99)
+quantile(c_temp3$PEARNVAL, 1)
+c_temp4 = c_temp3[c_temp3$PEARNVAL <= 300000, ]
+```
+
+```{r}
+PEARNVAL_plot = ggplot(c_temp4 ,aes(x=PEARNVAL)) + 
+  geom_histogram() + 
+  xlim(c(0,250000))
+PEARNVAL_plot
+```
+
+
+Set Age < 80, and Work Hour > 0
+```{r}
+c_temp5 = c_temp4[, !colnames(c_temp4) %in% c("A_LFSR")]
+c_temp5 = c_temp5[c_temp5$A_AGE < 80,]
+c_temp5 = c_temp5[c_temp5$A_USLHRS > 0,]
+```
+
+Dropping outliers of MOOP (Total medical out of pocket expenditures)
+```{r}
+quantile(c_temp5$MOOP, 0.99)
+quantile(c_temp5$MOOP, 1)
+c_temp6 = c_temp5[c_temp5$MOOP <= 17000, ]
+#c_temp7 = c_temp6
+```
+
+
+Encode:
+
+Major industry code (A_MJIND):
+```{r}
+c_temp6$A_MJIND = factor(c_temp6$A_MJIND)
+labels3 = c('Agriculture, forestry,fishing, and hunting', 'Mining', 'Construction', 'Manufacturing', 'Wholesale and retail trade', 'Transportation and utilities', 'Information', 'Financial activities', 'Professional and business services', 'Educational and health services', 'Leisure and hospitality', 'Other services', 'Public administration')
+levels(c_temp6$A_MJIND) = labels3
+#table(c_temp7$A_MJIND)
+#table(c_temp6$A_MJIND)
+```
+
+Major occupation code (A_MJOCC):
+```{r}
+c_temp6$A_MJOCC = factor(c_temp6$A_MJOCC)
+levels(c_temp6$A_MJOCC) = c('Management, business, and financial occupations', 'Professional and related occupations', 'Service occupations', 'Sales and related occupations', 'Office and administrative support occupations', 'Farming, fishing, and forestry occupations', 'Construction and extraction occupations', 'Installation, maintenance, and repair occupations', 'Production occupations', 'Transportation and material moving occupations')
+#table(c_temp7$A_MJOCC)
+#table(c_temp6$A_MJOCC)
+```
+
+
+Demographic Variables:
+
+Race (PRDTRACE):
+```{r}
+c_temp6$PRDTRACE = factor(c_temp6$PRDTRACE)
+levels(c_temp6$PRDTRACE) = c('White only', 'Black only','American Indian, Alaskan Native only (AI)', 'Asian only', 'Hawaiian/Pacific Islander only (HP)', 'White-Black', 'White-AI', 'White-Asian', 'White-HP', 'Black-AI', 'Black-Asian', 'Black-HP', 'AI-Asian', 'AI-HP', 'Asian-HP', 'White-Black-AI', 'White-Black-Asian', 'White-Black-HP', 'White-AI-Asian', 'White-AI-HP', 'White-Asian-HP', 'Black-AI-Asian', 'White-Black-AI-Asian', 'Other 3 race comb', 'Other 4 or 5 race comb')
+#table(c_temp7$PRDTRACE)
+#table(c_temp6$PRDTRACE)
+```
+
+Degree (A_HGA):
+```{r}
+c_temp6$A_HGA = factor(c_temp6$A_HGA)
+levels(c_temp6$A_HGA) = c('Less than 1st grade', '1st,2nd,3rd,or 4th grade', '5th or 6th grade', '7th and 8th grade', '9th grade', '10th grade', '11th grade', '12th grade no diploma', 'High school graduate - high school diploma or equivalent', 'Some college but no degree', 'Associate degree in college - occupation/vocation program', 'Associate degree in college - academic program', 'Bachelor\'s degree (for example: BA,AB,BS)', 'Master\'s degree (for example: MA,MS,MENG,MED,MSW , MBA)', 'Professional school degree (for example: MD,DDS,DVM,LLB,JD)', 'Doctorate degree (for example: PHD,EDD)')
+#table(c_temp6$A_HGA)
+#table(c_temp7$A_HGA)
+
+```
+
+Marriage (A_MARITL):
+```{r}
+c_temp6$A_MARITL = factor(c_temp6$A_MARITL)
+levels(c_temp6$A_MARITL)=c('Married - civilian spouse present', 'Married - AF spouse present', 'Married - spouse absent (exc.separated)', 'Widowed', 'Divorced', 'Separated', 'Never married')
+#table(c_temp6$A_MARITL)
+#table(c_temp7$A_MARITL)
+
+```
+
+Whether the person is Spanish, Hispanic, or Latino (PEHSPNON):
+```{r}
+c_temp6$PEHSPNON = factor(c_temp6$PEHSPNON)
+levels(c_temp6$PEHSPNON)=c('Yes', 'No')
+#table(c_temp6$PEHSPNON)
+#table(c_temp7$PEHSPNON)
+
+```
+
+
+Census division of residence (MIG_DIV):
+
+(Note: Each contains several states. Check Wikipedia page for reference: 
+https://en.wikipedia.org/wiki/List_of_regions_of_the_United_States)
+
+```{r}
+c_temp6$MIG_DIV = factor(c_temp6$MIG_DIV)
+levels(c_temp6$MIG_DIV) = c('new england', 'middle atlantic', 'east north central', 'west north central', 'south atlantic', 'east south central', 'west south central',  'mountain', 'pacific', 'abroad')
+
+table(c_temp6$MIG_DIV)
+table(c_temp7$MIG_DIV)
+```
+
+Health Status (HEA)
+```{r}
+c_temp6$HEA = factor(c_temp6$HEA)
+levels(c_temp6$HEA) = c('Excellent', 'Very good', 'Good', 'Fair', 'Poor')
+#table(c_temp6$HEA)
+#table(c_temp7$HEA)
+```
+
+
+
+```{r}
+dim(c_temp6)
+summary(c_temp6)
+```
+
+Splitting
+
+```{r}
+smp_size <- floor(0.60 * nrow(c_temp6))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(c_temp6)), size = smp_size)
+
+train <- c_temp6[train_ind, ]
+dev_test <- c_temp6[-train_ind, ]
+
+smp_size <- floor(0.50 * nrow(dev_test))
+set.seed(123)
+dev_ind <- sample(seq_len(nrow(dev_test)), size = smp_size)
+dev <- dev_test[dev_ind, ]
+test <- dev_test[-dev_ind, ]
+
+
+write.csv("test.csv", x=test)
+write.csv("validation.csv", x=dev)
+write.csv("train.csv", x=train)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
