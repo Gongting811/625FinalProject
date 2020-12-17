@@ -1,0 +1,125 @@
+---
+title: "glm and rf"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+setting up training and testing datasets
+```{r}
+earnbin <- rep(0,nrow(train))
+earnbin[which(train$PEARNVAL >= 60000)] <- 1
+newtrain <- cbind(train,earnbin)
+newtrain$earnbinf <- as.factor(newtrain$earnbin)
+
+newtrain$HEAbin <- NA
+newtrain$HEAbin[which(newtrain$HEA=="Excellent")] <- "Good"
+newtrain$HEAbin[which(newtrain$HEA=="Good")] <- "Good"
+newtrain$HEAbin[which(newtrain$HEA=="Very good")] <- "Good"
+newtrain$HEAbin[which(newtrain$HEA=="Fair")] <- "Bad"
+newtrain$HEAbin[which(newtrain$HEA=="Poor")] <- "Bad"
+newtrain$HEAbin <- as.factor(newtrain$HEAbin)
+newtrain <- newtrain[,-1]
+
+newtest <- test[,-1]
+
+newtest$HEAbin <- NA
+newtest$HEAbin[which(newtest$HEA=="Excellent")] <- "Good"
+newtest$HEAbin[which(newtest$HEA=="Good")] <- "Good"
+newtest$HEAbin[which(newtest$HEA=="Very good")] <- "Good"
+newtest$HEAbin[which(newtest$HEA=="Fair")] <- "Bad"
+newtest$HEAbin[which(newtest$HEA=="Poor")] <- "Bad"
+newtest$HEAbin <- as.factor(newtest$HEAbin)
+
+newtest$earnbin <- 0
+newtest$earnbin[which(test$PEARNVAL >= 60000)] <- 1
+newtest$earnbinf <- as.factor(newtest$earnbin)
+newtest <- newtest[,-c(1,14,16)]
+
+levels(newtest$PRDTRACE) <- levels(newtrain$PRDTRACE)
+levels(newtest$A_HGA) <- levels(newtrain$A_HGA)
+levels(newtest$A_MARITL) <- levels(newtrain$A_MARITL)
+levels(newtest$PEHSPNON) <- levels(newtrain$PEHSPNON)
+levels(newtest$MIG_DIV) <- levels(newtrain$MIG_DIV)
+levels(newtest$A_CLSWK) <- levels(newtrain$A_CLSWK)
+levels(newtest$A_MJIND) <- levels(newtrain$A_MJIND)
+levels(newtest$A_MJOCC) <- levels(newtrain$A_MJOCC)
+levels(newtest$HEAbin) <- levels(newtrain$HEAbin)
+```
+
+Base GLM and GLM with interactions of sex and marital status variables and major industry and major occupation
+```{r}
+binglm <- glm(earnbin ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, family="binomial")
+summary(binglm)
+## with interactions has higher AUC. also lower AIC
+binintglm <- glm(earnbin ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND*A_MJOCC + MOOP + HEAbin, data=newtrain, family="binomial")
+summary(binintglm4)
+
+
+glm.prob.1 = predict(binglm, newdata = newtest, type = "response")
+glm.roc.1 = roc(newtest$earnbinf ~ glm.prob.1, plot = TRUE, print.auc = TRUE)
+glm.prob.2 = predict(binintglm4, newdata = newtest, type = "response")
+glm.roc.2 = roc(newtest$earnbinf ~ glm.prob.2, plot = TRUE, print.auc = TRUE)
+```
+
+Random forest with a couple mtry values. I consider 2 and 6 to be the best options. The difference in their AUC's is relatively small, so 6 may be better in some sense despite having the lower AUC
+```{r}
+## default RF output is first
+rf <- randomForest(earnbinf ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain)
+rfint <- randomForest(earnbinf ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND*A_MJOCC + MOOP + HEAbin, data=newtrain)
+
+rf2<- randomForest(earnbinf ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, mtry=2)
+rfint2 <- randomForest(earnbinf ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND*A_MJOCC + MOOP + HEAbin, data=newtrain, mtry=2) ## this one had the highest AUC
+
+rf6 <- randomForest(earnbinf ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, mtry=6)
+rfint6 <- randomForest(earnbinf ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND*A_MJOCC + MOOP + HEAbin, data=newtrain, mtry=6)
+
+
+## default RF tables and AUC
+preddef = predict(rf,newdata=newtest[,-14])
+table(newtest[,14],preddef)
+predintdef = predict(rfint,newdata=newtest[,-14])
+table(newtest[,14],predintdef)
+rf.roc = roc(newtrain$earnbinf, rf$votes[,2])
+auc(rf.roc)
+rfint.roc = roc(newtrain$earnbinf, rfint$votes[,2])
+auc(rfint.roc)
+
+
+
+predtest = predict(rf2,newdata=newtrain[,-c(14,15,16)]) ## applying to the training dataset to see accuracy on training data. accuracy was relatively low for 2, but had highest AUC
+table(newtrain[,16],predtest)
+predtest = predict(rfint2,newdata=newtrain[,-c(14,15,16)])
+table(newtrain[,16],predtest)
+
+pred2 = predict(rf2,newdata=newtest[,-14])
+table(newtest[,14],pred2)
+pred2.int = predict(rfint2,newdata=newtest[,-14])
+table(newtest[,14],pred2.int)
+rf2.roc = roc(newtrain$earnbinf, rf2$votes[,2]) ## highester overall
+auc(rf2.roc)
+rfint2.roc = roc(newtrain$earnbinf, rfint2$votes[,2]) 
+auc(rfint2.roc)
+
+rf2.roc = roc(newtrain$earnbinf, rfint2$votes[,2], plot = TRUE, print.auc = TRUE) 
+
+
+
+predtest = predict(rf6,newdata=newtrain[,-c(14,15,16)]) ## mtry = 6 had the lowest number of incorrect against the training, along with mtry = 8, 10, and 13. 6 had a higher AUC than all of them
+table(newtrain[,16],predtest)
+
+pred6 = predict(rf6,newdata=newtest[,-14])
+table(newtest[,14],pred6)
+pred6.int = predict(rfint6,newdata=newtest[,-14])
+table(newtest[,14],pred6.int)
+rf6.roc = roc(newtrain$earnbinf, rf6$votes[,2])
+auc(rf6.roc)
+rfint6.roc = roc(newtrain$earnbinf, rfint6$votes[,2])
+auc(rfint6.roc)
+
+```
+
+
+
