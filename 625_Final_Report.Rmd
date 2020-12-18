@@ -1,0 +1,72 @@
+---
+title: "Biostats 625 Final Project - US 2019 Census Data"
+author: "Group 4 members: Ting Gong, Lap Sum Chan, Margaret Prentice"
+date: "December 20, 2020"
+output:
+  pdf_document: default
+  html_document: default
+  rmarkdown::pdf_document:
+    fig_caption: yes
+    includes: null
+subtitle: \textit{https://github.com/Gongting811/625FinalProject}
+header-includes:
+- \usepackage[utf8]{inputenc}
+- \usepackage{listings}
+- \usepackage{amsmath}
+- \usepackage{bm}
+- \usepackage{bbm}
+- \usepackage{amssymb}
+- \usepackage{graphicx}
+- \usepackage{multirow}
+- \usepackage{caption}
+- \usepackage{color}
+- \usepackage{array}
+- \usepackage{tabu}
+- \usepackage{mathtools}
+- \usepackage{bbold}
+- \usepackage{array}
+- \usepackage{mathrsfs}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(ggplot2)
+```
+
+#Introduction
+
+The problem of income inequality has been of great concern in the recent years. Large differences in annual incomes may be the result of a combination of factors such as education level, age, gender, occupation, race, etc. This project aims to conduct a comprehensive analysis to highlight the key factors that are necessary in improving an individual's income. Such analysis would help to set focus on the important areas which can significantly improve the income levels of individuals and thus help to provide a guidance for the individual who wants to make some changes to improve their income level. After identifying the important predictors for income, several binary classifiers are trained to predict whether an individual's annual income in 2019 falls in the income category of either greater than or equal to 60,000 USD or less than 60,000 USD using the dataset extracted from the 2019 Census Bureau database.
+
+#Data Pre-processing
+
+The demographic and income data in this report are from the Current Population Survey (CPS) Annual Social and Economic Supplement (ASEC) conducted by the US Census Bureau in 2019. The US Census Bureau collects data and publishes estimates on income and poverty each year to evaluate national economic trends as well as to understand their impact on the wellbeing of households, families, and individuals. 
+
+*Dataset Extraction*
+
+Our dataset are extracted from the original individual-level ASEC dataset, which contains 180101 individuals and 799 features in total. All the categorical variables were encoded numerically in the original dataset, so the first step was to encode them all in the proper categorical form by hand. Then, to reduce the dimension and select related features from the raw data, we did Backward Elimination with the total `income` variable as the response variable and all the remaining ones as covariates. As a result, we selected a set of features that contains demographic variables such as `age`, `race`, `sex`, `academic degree`, `marital status`, `ethnic`, and `region`; employment variables such as `labor force status`, `working hours`, `worker classes`, `major industry` and `major occupation`; health-related variables such as `total medical expenditures` and `health status`. Then, we set several conditions such as `income` > 0, `age` < 80, and `working hour` > 0, merged similar columns for categorical variables, dropped the outliers, etc and finally got our 19 Census income dataset. We then split the dataset into 60%, 20% and 20% for training, validation and testing respectively.
+
+
+*Exploratory Data Analysis*
+
+I will add some pics here later
+
+
+
+#Methodology
+
+
+
+
+#Result
+
+
+
+
+
+
+
+
