@@ -1,0 +1,157 @@
+---
+title: "Biostats 625 Final Project - US 2019 Census Data"
+author: "Group 4 members: Ting Gong, Lap Sum Chan, Margaret Prentice"
+date: "December 20, 2020"
+output:
+  pdf_document: default
+  html_document: default
+  rmarkdown::pdf_document:
+    fig_caption: yes
+    includes: null
+subtitle: \textit{https://github.com/Gongting811/625FinalProject}
+header-includes:
+- \usepackage[utf8]{inputenc}
+- \usepackage{listings}
+- \usepackage{amsmath}
+- \usepackage{bm}
+- \usepackage{bbm}
+- \usepackage{amssymb}
+- \usepackage{graphicx}
+- \usepackage{multirow}
+- \usepackage{caption}
+- \usepackage{color}
+- \usepackage{array}
+- \usepackage{tabu}
+- \usepackage{mathtools}
+- \usepackage{bbold}
+- \usepackage{array}
+- \usepackage{mathrsfs}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(ggplot2)
+```
+
+#Introduction
+
+The problem of income inequality has been of great concern in the recent years. Large differences in annual incomes may be the result of a combination of factors such as education level, age, gender, occupation, race, etc. This project aims to conduct a comprehensive analysis to highlight the key factors that are necessary in improving an individual's income. Such analysis would help to set focus on the important areas which can significantly improve the income levels of individuals and thus help to provide a guidance for the individual who wants to make some changes to improve their income level. After identifying the important predictors for income, several binary classifiers are trained to predict whether an individual's annual income in 2019 falls in the income category of either greater than or equal to 60,000 USD or less than 60,000 USD using the dataset extracted from the 2019 Census Bureau database.
+
+#Data Pre-processing
+
+The demographic and income data in this report are from the Current Population Survey (CPS) Annual Social and Economic Supplement (ASEC) conducted by the US Census Bureau in 2019. The US Census Bureau collects data and publishes estimates on income and poverty each year to evaluate national economic trends as well as to understand their impact on the wellbeing of households, families, and individuals. 
+
+*Dataset Extraction*
+
+Our dataset are extracted from the original individual-level ASEC dataset, which contains 180101 individuals and 799 features in total. All the categorical variables were encoded numerically in the original dataset, so the first step was to encode them all in the proper categorical form by hand. Then, to reduce the dimension and select related features from the raw data, we did Backward Elimination with the total `income` variable as the response variable and all the remaining ones as covariates. As a result, we selected a set of features that contains demographic variables such as `age`, `race`, `sex`, `academic degree`, `marital status`, `ethnic`, and `region`; employment variables such as `labor force status`, `working hours`, `worker classes`, `major industry` and `major occupation`; health-related variables such as `total medical expenditures` and `health status`. Then, we set several conditions such as `income` > 0, `age` < 80, and `working hour` > 0, merged similar columns for categorical variables, dropped the outliers, etc and finally got our 19 Census income dataset. We then split the dataset into 60%, 20% and 20% for training, validation and testing respectively.
+
+
+*Exploratory Data Analysis*
+
+I will add some pics here later
+
+
+
+#Methodology
+
+*Logistic Regression*
+
+Several models and interaction terms were considered for logistic regression. The final model included all features settled upon during the datast extraction, as well as interaction terms between `sex` and `marital status` and between `worker classes` and `major industry`. These interaction terms were significant and reduced the AIC of the model as well as increased the area under the curve (AUC) of the receiver operating characteristic (ROC) curve as compared to the base logistic regression model with all features and no interaction terms. 
+
+```{r include = FALSE}
+library("gridExtra")
+library("pROC")
+library("precrec")
+train <- read.csv("train.csv")
+test <- read.csv("test.csv")
+
+earnbin <- rep(0,nrow(train))   ## binning the training response variable
+earnbin[which(train$PEARNVAL >= 60000)] <- 1
+newtrain <- cbind(train,earnbin)
+newtrain$earnbinf <- as.factor(newtrain$earnbin)
+
+newtrain$HEAbin <- NA       ## binning the HEA variable for the training dataset
+newtrain$HEAbin[which(newtrain$HEA=="Excellent")] <- "Good"
+newtrain$HEAbin[which(newtrain$HEA=="Good")] <- "Good"
+newtrain$HEAbin[which(newtrain$HEA=="Very good")] <- "Good"
+newtrain$HEAbin[which(newtrain$HEA=="Fair")] <- "Bad"
+newtrain$HEAbin[which(newtrain$HEA=="Poor")] <- "Bad"
+newtrain$HEAbin <- as.factor(newtrain$HEAbin)
+newtrain <- newtrain[,-1]
+
+newtest <- test[,-1]
+
+newtest$HEAbin <- NA       ## binning the HEA variable for the testing dataset
+newtest$HEAbin[which(newtest$HEA=="Excellent")] <- "Good"
+newtest$HEAbin[which(newtest$HEA=="Good")] <- "Good"
+newtest$HEAbin[which(newtest$HEA=="Very good")] <- "Good"
+newtest$HEAbin[which(newtest$HEA=="Fair")] <- "Bad"
+newtest$HEAbin[which(newtest$HEA=="Poor")] <- "Bad"
+newtest$HEAbin <- as.factor(newtest$HEAbin)
+
+newtest$earnbin <- 0   ## binning the test response variable
+newtest$earnbin[which(test$PEARNVAL >= 60000)] <- 1
+newtest$earnbinf <- as.factor(newtest$earnbin)
+newtest <- newtest[,-c(1,14,16)]
+## confirming that levels rae defined the same way between datasets
+levels(newtest$PRDTRACE) <- levels(newtrain$PRDTRACE)
+levels(newtest$A_HGA) <- levels(newtrain$A_HGA)
+levels(newtest$A_MARITL) <- levels(newtrain$A_MARITL)
+levels(newtest$PEHSPNON) <- levels(newtrain$PEHSPNON)
+levels(newtest$MIG_DIV) <- levels(newtrain$MIG_DIV)
+levels(newtest$A_CLSWK) <- levels(newtrain$A_CLSWK)
+levels(newtest$A_MJIND) <- levels(newtrain$A_MJIND)
+levels(newtest$A_MJOCC) <- levels(newtrain$A_MJOCC)
+levels(newtest$HEAbin) <- levels(newtrain$HEAbin)
+## logistic regression model
+binintglm <- glm(earnbin ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR*A_MJIND + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, family="binomial")
+
+## generating predictions from test data
+glm.prob.2 = predict(binintglm, newdata = newtest, type = "response")
+glm.roc.2 = roc(newtest$earnbinf ~ glm.prob.2)
+
+em1 <- evalmod(scores = glm.prob.2, labels=newtest$earnbinf)
+```
+The plot below to the left shows the AUC of the ROC curve for the logistic regression model with interaction termsbetween `sex` and `marital status` and between `worker classes` and `major industry`. The plot below to the right shows the AUC of the Precision-Recall (PR) curve for the same logistic regression model. The table below shows the decimal values for each, with about the AUC of the ROC curve being about 79.1% and the AUC of the PR curve being about 59.3%.
+```{r echo = FALSE}
+## generating AUC ROC and AUC PR % and plots
+curves.part1 <- part(em1, xlim = c(0.0, 1))
+paucs.df1 <- pauc(curves.part1)
+knitr::kable(paucs.df1[,-c(1,2,5)])
+autoplot(em1)
+```
+
+*Random Forest*
+
+When testing the data under random forest models, models without interaction terms were first considered. These were tested to see the optimal number of features to include. Setting the number of features equal to 6 or higher minimized the number of incorrect predictions in the train dataset. Increasing the number of features to values greater than 6 reduced the AUC of the ROC curve. When applying the random forest models to the test dataset, setting the number of features equal to 2 maximized the AUC of the ROC curve. The difference in AUC of the ROC curve between a random forest with 2 features and random forest with 6 features was about 0.008 or 0.8%. The random forest with 6 features was chosen to balance the number of incorrect features against higher AUC of the ROC curve.
+
+```{r include = FALSE}
+library("randomForest")
+rf6 <- randomForest(earnbinf ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, mtry=6)
+rf6.roc = roc(newtrain$earnbinf, rf6$votes[,2], percent=TRUE)
+## generating predictions from test data
+rf.prob.6 <- predict(rf6, newdata=newtest, type="prob")
+em2 <- evalmod(scores = rf.prob.6[,2], labels=newtest$earnbinf)
+```
+The plot below to the left shows the AUC of the ROC curve for the random forest using 6 features. The plot below to the right shows the AUC of the PR curve for the random forest using 6 features. There was an improvement in both AUC of the ROC curve and the PR curve when using the random forest. The table below shows the decimal values for each, with about the AUC of the ROC curve being about 83.5% and the AUC of the PR curve being about 71.5%. The AUC of the ROC curve increased by about 5.6% while the AUC of the PR curve increased by about 20.5% from the logistic regression model to the random forest.
+```{r echo = F}
+## generating AUC ROC and AUC PR % and plots
+curves.part2 <- part(em2, xlim = c(0.0, 1))
+paucs.df2 <- pauc(curves.part2)
+knitr::kable(paucs.df2[,-c(1,2,5)])
+autoplot(em2)
+```
+
+
+
+#Result
+
+
+
+
+
+
