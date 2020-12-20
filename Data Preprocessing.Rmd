@@ -1,22 +1,24 @@
 ---
-title: "625 final project"
+title: "625 final project - Data Preprocessing"
+author: "Ting Gong"
 output: pdf_document
 ---
 
-This is a draft of what I did for data-preprocessing. 
+This is a report for data-preprocessing part of the final project. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r include=FALSE}
+```{r, include=FALSE}
 library(ggplot2)
 ```
 
-
 ```{r}
-census19 = read.table("pppub19.csv", header=T, sep=',')
+census = read.table("pppub19.csv", header=T, sep=',')
 ```
+
+#### Introduction
 
 All the categorical variables were encoded numerically in the original dataset, so the first step I did was to encode them all in the proper categorical form. I then did the Backward Elimination with "PEARNVAL" as the response variable and get a set of features as following: 
 
@@ -30,12 +32,14 @@ Income Variables that were not included: 'ERN_VAL', 'A_HRSPAY', 'WSAL_VAL', 'DIV
 
 
 ```{r}
-c_temp = census19[ , c('PEARNVAL', 'A_AGE', 'PRDTRACE', 'A_SEX', 'A_HGA', 'A_MARITL','PEHSPNON', 'MIG_DIV', 'A_LFSR', 'A_USLHRS', 'A_CLSWKR', 'A_MJIND', 'A_MJOCC', 'MOOP', 'HEA')]
+c_temp = census[ , c('PEARNVAL', 'A_AGE', 'PRDTRACE', 'A_SEX', 'A_HGA', 'A_MARITL','PEHSPNON', 'MIG_DIV', 'A_LFSR', 'A_USLHRS', 'A_CLSWKR', 'A_MJIND', 'A_MJOCC', 'MOOP', 'HEA')]
 ```
 
-Employment Variables:
 
-Labor Force Status (A_LFSR):
+#### Employment Variables
+
+**Labor Force Status (A_LFSR)**
+
 ```{r}
 c_temp[c_temp['A_LFSR'] == 7, 'A_LFSR'] = 5
 c_temp$A_LFSR = factor(c_temp$A_LFSR)
@@ -45,12 +49,17 @@ levels(c_temp$A_LFSR)=labels1
 
 ```{r}
 A_LFSR_plot = ggplot(c_temp,aes(x=A_LFSR)) + 
-  geom_bar()
-A_LFSR_plot + theme(axis.text.x = element_text(angle = 45, vjust = 1.0, hjust=1))
+  geom_bar(width=.7, position = position_dodge(width = 0.2)) + 
+  labs(x = "Labor Force Status", 
+       title="Labor Force Status Distribution") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, vjust=0.5))
+A_LFSR_plot
+#ggsave(plot = A_LFSR_plot, width = 7, height = 7, filename = "Labor Force Status Distribution.png")
 ```
 Only keep the "working" category.
 
-Then check worker classes (A_CLSWKR):
+**Worker Classes (A_CLSWKR)**
 ```{r}
 c_temp1 = c_temp[c_temp$A_LFSR == "Working",]
 c_temp1$A_CLSWKR = factor(c_temp1$A_CLSWKR)
@@ -60,28 +69,40 @@ levels(c_temp1$A_CLSWKR)=labels2
 
 ```{r}
 A_CLSWKR_plot = ggplot(c_temp1,aes(x=A_CLSWKR)) + 
-  geom_bar()
-A_CLSWKR_plot + theme(axis.text.x = element_text(angle = 45, vjust = 1.0, hjust=1))
+  geom_bar(width=.5, position = position_dodge(width = 0.2)) + 
+  labs(x = "Worker Class", 
+       title="Worker Class Distribution") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, vjust=0.5))
+A_CLSWKR_plot
+#ggsave(plot = A_CLSWKR_plot, filename = "Worker Class Distribution.png")
 ```
 
 ```{r}
 levels(c_temp1$A_CLSWKR)[levels(c_temp1$A_CLSWKR)%in% c("Federal government", "State government", "Local government")] = "Government"
-
 levels(c_temp1$A_CLSWKR)[levels(c_temp1$A_CLSWKR)%in% c("Self-employed-incorporated", "Self-employed-not incorporated")] = "Self-employed"
-
 c_temp2 = c_temp1[c_temp1$A_CLSWKR != "Without pay", ]
-A_CLSWKR_plot = ggplot(c_temp2,aes(x=A_CLSWKR)) + 
-  geom_bar()
-A_CLSWKR_plot + theme(axis.text.x = element_text(angle = 45, vjust = 1.0, hjust=1))
-
 ```
 
-Set PEARNVAL > 0:
+```{r}
+A_CLSWKR_plot = ggplot(c_temp2,aes(x=A_CLSWKR)) + 
+  geom_bar(width=.5, position = position_dodge(width = 0.2)) + 
+  labs(x = "Worker Class", 
+       title="Worker Class Distribution") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, vjust=0.5))
+A_CLSWKR_plot
+#ggsave(plot = A_CLSWKR_plot, filename = "Worker Class Distribution.png")
+```
+
+#### Apply several conditions & Drop Outliers
+
+**PEARNVAL > 0**
 ```{r}
 c_temp3 = c_temp2[c_temp2$PEARNVAL > 0, ]
 ```
 
-Dropping outliers of PEARNVAL:
+**Dropping outliers of PEARNVAL**
 ```{r}
 quantile(c_temp3$PEARNVAL, 0.01)
 c_temp3 = c_temp3[c_temp3$PEARNVAL >= 1200, ]
@@ -91,22 +112,25 @@ quantile(c_temp3$PEARNVAL, 1)
 c_temp4 = c_temp3[c_temp3$PEARNVAL <= 300000, ]
 ```
 
+**Income Plot**
 ```{r}
 PEARNVAL_plot = ggplot(c_temp4 ,aes(x=PEARNVAL)) + 
   geom_histogram() + 
+  labs(x = "Income", 
+       title="Income Distribution") + 
+  theme_bw() + 
   xlim(c(0,250000))
 PEARNVAL_plot
 ```
 
-
-Set Age < 80, and Work Hour > 0
+**Set Age < 80, and Work Hour > 0**
 ```{r}
 c_temp5 = c_temp4[, !colnames(c_temp4) %in% c("A_LFSR")]
 c_temp5 = c_temp5[c_temp5$A_AGE < 80,]
 c_temp5 = c_temp5[c_temp5$A_USLHRS > 0,]
 ```
 
-Dropping outliers of MOOP (Total medical out of pocket expenditures)
+**Dropping outliers of MOOP (Total medical out of pocket expenditures)**
 ```{r}
 quantile(c_temp5$MOOP, 0.99)
 quantile(c_temp5$MOOP, 1)
@@ -115,9 +139,9 @@ c_temp6 = c_temp5[c_temp5$MOOP <= 17000, ]
 ```
 
 
-Encode:
+#### Categorical Variable Encodings:
 
-Major industry code (A_MJIND):
+**Major industry code (A_MJIND)**
 ```{r}
 c_temp6$A_MJIND = factor(c_temp6$A_MJIND)
 labels3 = c('Agriculture, forestry,fishing, and hunting', 'Mining', 'Construction', 'Manufacturing', 'Wholesale and retail trade', 'Transportation and utilities', 'Information', 'Financial activities', 'Professional and business services', 'Educational and health services', 'Leisure and hospitality', 'Other services', 'Public administration')
@@ -126,7 +150,7 @@ levels(c_temp6$A_MJIND) = labels3
 #table(c_temp6$A_MJIND)
 ```
 
-Major occupation code (A_MJOCC):
+**Major occupation code (A_MJOCC)**
 ```{r}
 c_temp6$A_MJOCC = factor(c_temp6$A_MJOCC)
 levels(c_temp6$A_MJOCC) = c('Management, business, and financial occupations', 'Professional and related occupations', 'Service occupations', 'Sales and related occupations', 'Office and administrative support occupations', 'Farming, fishing, and forestry occupations', 'Construction and extraction occupations', 'Installation, maintenance, and repair occupations', 'Production occupations', 'Transportation and material moving occupations')
@@ -135,9 +159,9 @@ levels(c_temp6$A_MJOCC) = c('Management, business, and financial occupations', '
 ```
 
 
-Demographic Variables:
+**Demographic Variables**
 
-Race (PRDTRACE):
+**Race (PRDTRACE)**
 ```{r}
 c_temp6$PRDTRACE = factor(c_temp6$PRDTRACE)
 levels(c_temp6$PRDTRACE) = c('White only', 'Black only','American Indian, Alaskan Native only (AI)', 'Asian only', 'Hawaiian/Pacific Islander only (HP)', 'White-Black', 'White-AI', 'White-Asian', 'White-HP', 'Black-AI', 'Black-Asian', 'Black-HP', 'AI-Asian', 'AI-HP', 'Asian-HP', 'White-Black-AI', 'White-Black-Asian', 'White-Black-HP', 'White-AI-Asian', 'White-AI-HP', 'White-Asian-HP', 'Black-AI-Asian', 'White-Black-AI-Asian', 'Other 3 race comb', 'Other 4 or 5 race comb')
@@ -145,7 +169,7 @@ levels(c_temp6$PRDTRACE) = c('White only', 'Black only','American Indian, Alaska
 #table(c_temp6$PRDTRACE)
 ```
 
-Degree (A_HGA):
+**Degree (A_HGA)**
 ```{r}
 c_temp6$A_HGA = factor(c_temp6$A_HGA)
 levels(c_temp6$A_HGA) = c('Less than 1st grade', '1st,2nd,3rd,or 4th grade', '5th or 6th grade', '7th and 8th grade', '9th grade', '10th grade', '11th grade', '12th grade no diploma', 'High school graduate - high school diploma or equivalent', 'Some college but no degree', 'Associate degree in college - occupation/vocation program', 'Associate degree in college - academic program', 'Bachelor\'s degree (for example: BA,AB,BS)', 'Master\'s degree (for example: MA,MS,MENG,MED,MSW , MBA)', 'Professional school degree (for example: MD,DDS,DVM,LLB,JD)', 'Doctorate degree (for example: PHD,EDD)')
@@ -154,7 +178,13 @@ levels(c_temp6$A_HGA) = c('Less than 1st grade', '1st,2nd,3rd,or 4th grade', '5t
 
 ```
 
-Marriage (A_MARITL):
+**Sex(A_SEX)**
+```{r}
+c_temp6$A_SEX = factor(c_temp6$A_SEX)
+levels(c_temp6$A_SEX) = c('male', 'female')
+```
+
+**Marriage (A_MARITL)**
 ```{r}
 c_temp6$A_MARITL = factor(c_temp6$A_MARITL)
 levels(c_temp6$A_MARITL)=c('Married - civilian spouse present', 'Married - AF spouse present', 'Married - spouse absent (exc.separated)', 'Widowed', 'Divorced', 'Separated', 'Never married')
@@ -163,7 +193,7 @@ levels(c_temp6$A_MARITL)=c('Married - civilian spouse present', 'Married - AF sp
 
 ```
 
-Whether the person is Spanish, Hispanic, or Latino (PEHSPNON):
+**Ethnics (PEHSPNON)**
 ```{r}
 c_temp6$PEHSPNON = factor(c_temp6$PEHSPNON)
 levels(c_temp6$PEHSPNON)=c('Yes', 'No')
@@ -173,8 +203,7 @@ levels(c_temp6$PEHSPNON)=c('Yes', 'No')
 ```
 
 
-Census division of residence (MIG_DIV):
-
+**Census division of residence (MIG_DIV)**
 (Note: Each contains several states. Check Wikipedia page for reference: 
 https://en.wikipedia.org/wiki/List_of_regions_of_the_United_States)
 
@@ -186,32 +215,131 @@ levels(c_temp6$MIG_DIV) = c('new england', 'middle atlantic', 'east north centra
 #table(c_temp7$MIG_DIV)
 ```
 
-Health Status (HEA)
+**Health Status (HEA)**
 ```{r}
 c_temp6$HEA = factor(c_temp6$HEA)
 levels(c_temp6$HEA) = c('Excellent', 'Very good', 'Good', 'Fair', 'Poor')
 #table(c_temp6$HEA)
 #table(c_temp7$HEA)
+levels(c_temp6$HEA)[levels(c_temp6$HEA)%in% c("Excellent", 'Very good', 'Good')] = "Good"
+levels(c_temp6$HEA)[levels(c_temp6$HEA)%in% c('Fair', 'Poor')] = "Bad"
 ```
 
+```{r}
+c_temp7 = c_temp6
+```
 
+Set up the binary variable using 60000 as the cutoff for PEARNVAL
+```{r}
+c_temp6['income_level'] = 0
+c_temp6[c_temp6$PEARNVAL > 60000, "income_level"] = 1
+c_temp6$income_level = factor(c_temp6$income_level)
+levels(c_temp6$income_level) = c('income <= 60000', 'income > 60000')
+```
+
+Merging columns of the Academic Degree variable
+```{r}
+levels(c_temp6$A_HGA)[levels(c_temp6$A_HGA)%in% c('Less than 1st grade', '1st,2nd,3rd,or 4th grade', '5th or 6th grade', '7th and 8th grade', '9th grade', '10th grade', '11th grade', '12th grade no diploma', 'High school graduate - high school diploma or equivalent')] = "high school or below"
+
+levels(c_temp6$A_HGA)[levels(c_temp6$A_HGA)%in% c('Some college but no degree', 'Associate degree in college - occupation/vocation program', 'Associate degree in college - academic program')] = "college no degree"
+
+levels(c_temp6$A_HGA)[levels(c_temp6$A_HGA)%in% c('Bachelor\'s degree (for example: BA,AB,BS)')] = "BS degree"
+
+levels(c_temp6$A_HGA)[levels(c_temp6$A_HGA)%in% c('Master\'s degree (for example: MA,MS,MENG,MED,MSW , MBA)', 'Professional school degree (for example: MD,DDS,DVM,LLB,JD)')] = "MS degree"
+                      
+levels(c_temp6$A_HGA)[levels(c_temp6$A_HGA)%in% c('Doctorate degree (for example: PHD,EDD)')] = "PhD degree" 
+
+```
+
+```{r}
+levels(c_temp6$A_MARITL)[levels(c_temp6$A_MARITL)%in% c('Married - civilian spouse present', 'Married - AF spouse present', 'Married - spouse absent (exc.separated)')] = "Married" 
+```
 
 ```{r}
 dim(c_temp6)
 summary(c_temp6)
 ```
 
-Splitting
+** Generating our dataset**
+```{r}
+write.csv("census19.csv", x=c_temp6)
+```
+
+#### Exploratory Data Analysis
 
 ```{r}
-smp_size <- floor(0.60 * nrow(c_temp6))
+ggplot(c_temp6, aes(A_AGE)) + 
+  geom_histogram(aes(fill = income_level), color = "black",binwidth = 1) +
+  labs(x='Age')
+```
+
+```{r}
+ggplot(c_temp6, aes(A_USLHRS)) + 
+  geom_histogram(aes(fill = income_level), color = "black",binwidth = 10) +
+  labs(x='Working Hours')
+```
+
+```{r}
+ggplot(c_temp6, aes(MIG_DIV)) + geom_bar(aes(fill = income_level), color = "black") +
+  theme(axis.text.x = element_text(angle = 60, vjust=0.5)) +
+  labs(x='Region')
+```
+
+```{r}
+ggplot(aes(x=income_level, y=A_AGE), data = c_temp6) + geom_boxplot() + 
+  ggtitle('Age vs. Income Level')
+ggplot(aes(x=income_level, y=A_USLHRS), data = c_temp6) + geom_boxplot() + 
+  ggtitle('Hours Per Week vs. Income Level')
+```
+
+
+```{r}
+p3 = ggplot(aes(x=A_CLSWKR, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Workclass with Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p4 = ggplot(aes(x=A_HGA, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Academic Degree vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p5 = ggplot(aes(x=A_MARITL, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Marriage Status vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p6 = ggplot(aes(x=A_MJOCC, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Occupation vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p7 = ggplot(aes(x=PRDTRACE, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Race vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p8 = ggplot(aes(x=A_SEX, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Sex vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p9 = ggplot(aes(x= MIG_DIV, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Region vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p10 = ggplot(aes(x= HEA, fill=income_level), data=c_temp6) + geom_bar(position = position_dodge()) + ggtitle('Health Status vs Income Level') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p3
+p4
+p5
+p6
+p7
+p8
+p9
+p10
+```
+
+#### Split the dataset into train, test and validation
+
+```{r}
+c_temp7['earnbin'] = 0
+c_temp7[c_temp7$PEARNVAL > 60000, "earnbin"] = 1
+c_temp7$earnbin = factor(c_temp7$earnbin)
+names(c_temp7)[names(c_temp7) == "HEA"] <- "HEAbin"
+dim(c_temp7)
+summary(c_temp7)
+```
+
+```{r}
+smp_size <- floor(0.60 * nrow(c_temp7))
 
 ## set the seed to make your partition reproducible
 set.seed(123)
-train_ind <- sample(seq_len(nrow(c_temp6)), size = smp_size)
+train_ind <- sample(seq_len(nrow(c_temp7)), size = smp_size)
 
-train <- c_temp6[train_ind, ]
-dev_test <- c_temp6[-train_ind, ]
+train <- c_temp7[train_ind, ]
+dev_test <- c_temp7[-train_ind, ]
 
 smp_size <- floor(0.50 * nrow(dev_test))
 set.seed(123)
@@ -220,9 +348,9 @@ dev <- dev_test[dev_ind, ]
 test <- dev_test[-dev_ind, ]
 
 
-#write.csv("test.csv", x=test)
-#write.csv("validation.csv", x=dev)
-#write.csv("train.csv", x=train)
+#write.csv("newtest.csv", x=test)
+#write.csv("newvalidation.csv", x=dev)
+#write.csv("newtrain.csv", x=train)
 ```
 
 
