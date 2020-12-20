@@ -139,8 +139,6 @@ Lastly, we split the dataset into 60%, 20% and 20% for training, validation and 
  
 ## 3. Methodology
 
-# Methodology
-
 **Logistic Regression**
 
 Several models and interaction terms were considered for logistic regression. The final model included all features settled upon during the datast extraction, as well as interaction terms between `sex` and `marital status` and between `worker classes` and `major industry`. These interaction terms were significant and reduced the AIC of the model as well as increased the area under the curve (AUC) of the receiver operating characteristic (ROC) curve as compared to the base logistic regression model with all features and no interaction terms. 
@@ -231,12 +229,8 @@ autoplot(em2)
 
 ## 4. Result
 
-***Feature Importance**
+**Feature Importance**
 
-```{r echo=FALSE}
-rf6$importance
-varImpPlot(rf6)
-```
 
 ***Model Comparison***
 
