@@ -1,4 +1,3 @@
-# Biostats 625 Final Group Project
-# Group 4
+# Biostats 625 Final Group Project - Group 4
 
 This project aims to conduct a comprehensive analysis to examine the key factors that are necessary in improving an individual's income using the dataset extracted from the 2019 US Census Bureau database. After identifying the important predictors for income, we also trained several binary classifiers to predict whether an individual's annual income in 2019 falls in the income category of either greater than or equal to 60,000 USD or less than 60,000 USD.
