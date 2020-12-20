@@ -229,7 +229,7 @@ autoplot(em2)
 
 ## 4. Result
 
-**Feature Importance**
+***Feature Importance***
 
 
 ***Model Comparison***
