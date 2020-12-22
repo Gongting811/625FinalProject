@@ -1,5 +1,0 @@
-cd /Users/apple/Dropbox/Fall 2020/Biostats 625/Final Project/asecpub20csv/625FinalProject
-git pull
-git add .
-git commit -m "add one folder"
-git push origin
