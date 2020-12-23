@@ -50,7 +50,7 @@ The demographic and income data in this report are from the Current Population S
 Our dataset were extracted from the original individual-level ASEC dataset, which contains 180101 individuals and 799 features in total. The biggest challenge was to encode all the categorical variables. Most of the variables are categorical ones, but they were all encoded numerically in the original dataset. Therefore, the first thing we did was to find them all by reading the documentations and encode them in the proper categorical form by hand. Next, we applied several conditions including `income` > 0, `age` > 15 and `age` < 80, `labor force status` == "working", `working hour` > 0 to the dataset. Then, to reduce the dimension and select related features from the raw data, we did the Backward Elimination with `income` variable as the response variable and all the remaining ones as covariates. As a result, a set of features were selected that contains demographic variables such as `age`, `race`, `sex`, `academic degree`, `marital status`, `ethnic`, and `region`; employment variables such as `labor force status`, `working hours`, `worker classes`, `major industry` and `major occupation`; health-related variables such as `total medical expenditures` and `health status`. Finally, we merged similar columns for several categorical variables, dropped all the outliers and eventually got our census19 dataset.
 
 ```{r include=FALSE}
-census19 = read.table("census19.csv", header=T, sep=',')
+census19 <- read.table("census19.csv", header = T, sep = ',')
 ```
 
 
@@ -59,16 +59,16 @@ census19 = read.table("census19.csv", header=T, sep=',')
 First, we plot a histogram and a boxplot of `age` versus `income level`. We can see from the graphs below that the `age` variable has a wide range and variability, and the percentage of people who make above $60000 peaks out at roughly 35% between ages 35 and 60. The boxplot shows that individuals who have higher incomes tend to be older than those who don't. This implies that `age` might be a good predictor of `income level`.
 
 ```{r, echo=FALSE, fig.width = 3.5, fig.height=2}
-opar<-par(no.readonly=T); par(mfrow=c(1,2))
+opar <- par(no.readonly = T); par(mfrow = c(1,2))
 ggplot(census19, aes(A_AGE)) + 
   geom_histogram(aes(fill = income_level), color = "black", binwidth = 1) +
-  labs(x='Age', title = 'Age vs. Income Level') +
-  theme(legend.position="none")
-ggplot(aes(x=income_level, y=A_AGE, fill=income_level), data = census19) + 
+  labs(x = 'Age', title = 'Age vs. Income Level') +
+  theme(legend.position = "none")
+ggplot(aes(x = income_level, y = A_AGE, fill = income_level), data = census19) + 
   geom_boxplot() + 
-  labs(x='Income', y='Age') +
+  labs(x = 'Income', y = 'Age') +
   ggtitle('Age vs. Income Level') +
-  theme(legend.position="none")
+  theme(legend.position = "none")
 par(opar);
 ```
 
@@ -76,16 +76,16 @@ Next, we plot a histogram and a boxplot of `working hours` (per week) versus `in
 
 
 ```{r, echo=FALSE, fig.width = 3.5, fig.height=2}
-opar<-par(no.readonly=T); par(mfrow=c(1,2))
+opar <- par(no.readonly = T); par(mfrow = c(1,2))
 ggplot(census19, aes(A_USLHRS)) + 
   geom_histogram(aes(fill = income_level), color = "black", binwidth = 10) +
-  labs(x='Working Hours', title = 'Working Hours vs. Income Level') +
-  theme(legend.position="none")
-ggplot(aes(x=income_level, y=A_USLHRS, fill=income_level), data = census19) + 
+  labs(x = 'Working Hours', title = 'Working Hours vs. Income Level') +
+  theme(legend.position = "none")
+ggplot(aes(x = income_level, y = A_USLHRS, fill = income_level), data = census19) + 
   geom_boxplot() + 
-  labs(x='Income', y='Working Hours') +
+  labs(x = 'Income', y = 'Working Hours') +
   ggtitle('Working Hours vs. Income Level') +
-  theme(legend.position="none")
+  theme(legend.position = "none")
 par(opar);
 ```
 
@@ -93,45 +93,45 @@ After visualizing the distribution of `income level` versus the above two contin
 
 
 ```{r, include=FALSE}
-levels(census19$A_HGA)[levels(census19$A_HGA)%in% c('Less than 1st grade', '1st,2nd,3rd,or 4th grade', '5th or 6th grade', '7th and 8th grade', '9th grade', '10th grade', '11th grade', '12th grade no diploma', 'High school graduate - high school diploma or equivalent')] = "high school or below"
+levels(census19$A_HGA)[levels(census19$A_HGA) %in% c('Less than 1st grade', '1st,2nd,3rd,or 4th grade', '5th or 6th grade', '7th and 8th grade', '9th grade', '10th grade', '11th grade', '12th grade no diploma', 'High school graduate - high school diploma or equivalent')] = "high school or below"
 
-levels(census19$A_HGA)[levels(census19$A_HGA)%in% c('Some college but no degree', 'Associate degree in college - occupation/vocation program', 'Associate degree in college - academic program')] = "college no degree"
+levels(census19$A_HGA)[levels(census19$A_HGA) %in% c('Some college but no degree', 'Associate degree in college - occupation/vocation program', 'Associate degree in college - academic program')] = "college no degree"
 
-levels(census19$A_HGA)[levels(census19$A_HGA)%in% c('Bachelor\'s degree (for example: BA,AB,BS)')] = "BS degree"
+levels(census19$A_HGA)[levels(census19$A_HGA) %in% c('Bachelor\'s degree (for example: BA,AB,BS)')] = "BS degree"
 
-levels(census19$A_HGA)[levels(census19$A_HGA)%in% c('Master\'s degree (for example: MA,MS,MENG,MED,MSW , MBA)', 'Professional school degree (for example: MD,DDS,DVM,LLB,JD)')] = "MS degree"
+levels(census19$A_HGA)[levels(census19$A_HGA) %in% c('Master\'s degree (for example: MA,MS,MENG,MED,MSW , MBA)', 'Professional school degree (for example: MD,DDS,DVM,LLB,JD)')] = "MS degree"
                       
-levels(census19$A_HGA)[levels(census19$A_HGA)%in% c('Doctorate degree (for example: PHD,EDD)')] = "PhD degree" 
+levels(census19$A_HGA)[levels(census19$A_HGA) %in% c('Doctorate degree (for example: PHD,EDD)')] = "PhD degree" 
 
 ```
 
 ```{r, echo=FALSE, fig.width = 3.5, fig.height=3}
-opar<-par(no.readonly=T); par(mfrow=c(1,2))
-ggplot(aes(x=A_CLSWKR), data=census19) + 
-  geom_bar(aes(fill = income_level), color = "black", width=0.3) + 
+opar <- par(no.readonly = T); par(mfrow = c(1,2))
+ggplot(aes(x = A_CLSWKR), data = census19) + 
+  geom_bar(aes(fill = income_level), color = "black", width = 0.3) + 
   ggtitle('Workclass with Income Level') + 
   theme(axis.text.x = element_text(angle = 45, vjust = 1), legend.position="none") +
   labs(x='Workclass')
 
-ggplot(aes(x=A_SEX), data=census19) + 
-  geom_bar(aes(fill = income_level), color = "black", width=0.2) + 
+ggplot(aes(x = A_SEX), data = census19) + 
+  geom_bar(aes(fill = income_level), color = "black", width = 0.2) + 
   ggtitle('Sex vs Income Level') + 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1), legend.position="none") +
-  labs(x='Sex')
+  theme(axis.text.x = element_text(angle = 45, vjust = 1), legend.position = "none") +
+  labs(x = 'Sex')
 par(opar);
 ```
 ```{r, echo=FALSE, fig.width = 3.5, fig.height=3}
-opar<-par(no.readonly=T); par(mfrow=c(1,2))
+opar <- par(no.readonly = T); par(mfrow = c(1,2))
 ggplot(census19, aes(MIG_DIV)) + 
   geom_bar(aes(fill = income_level), color = "black") +
-  theme(axis.text.x = element_text(angle = 45, vjust=1)) +
-  labs(x='Region', title = 'Regions vs. Income Level') +
-  theme(legend.position="none")
-ggplot(aes(x=A_HGA), data=census19) + 
-  geom_bar(aes(fill = income_level), color = "black", width=0.5) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1)) +
+  labs(x = 'Region', title = 'Regions vs. Income Level') +
+  theme(legend.position = "none")
+ggplot(aes(x = A_HGA), data = census19) + 
+  geom_bar(aes(fill = income_level), color = "black", width = 0.5) + 
   ggtitle('Academic Degree vs Income Level') + 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1), legend.position="none") +
-  labs(x='Degree')
+  theme(axis.text.x = element_text(angle = 45, vjust = 1), legend.position = "none") +
+  labs(x = 'Degree')
 par(opar);
 ```
 
@@ -139,101 +139,143 @@ Lastly, we split the dataset into 60%, 20% and 20% for training, validation and 
  
 ## 3. Methodology
 
+For each of the models, we selected the best performing model based on their accuracy performance on the validation set.
+
 **Logistic Regression**
 
-Several models and interaction terms were considered for logistic regression. The final model included all features settled upon during the datast extraction, as well as interaction terms between `sex` and `marital status` and between `worker classes` and `major industry`. These interaction terms were significant and reduced the AIC of the model as well as increased the area under the curve (AUC) of the receiver operating characteristic (ROC) curve as compared to the base logistic regression model with all features and no interaction terms. 
+Several models and interaction terms were considered for logistic regression. The final model included all features settled upon during the features extraction, as well as interaction terms between `sex` and `marital status` and between `worker classes` and `major industry`. These interaction terms increased the accuracy of the model on the validation set as well as increased the area under the curve (AUC) of the receiver operating characteristic (ROC) curve as compared to the base logistic regression model with all features and no interaction terms. 
 
 ```{r include = FALSE}
-library("gridExtra")
-library("pROC")
-library("precrec")
+library(caret)
+#library(gridExtra)
+#library(pROC)
+library(precrec)
 train <- read.csv("train.csv")
+validation <- read.csv("validation.csv")
 test <- read.csv("test.csv")
 
-earnbin <- rep(0,nrow(train))   ## binning the training response variable
-earnbin[which(train$PEARNVAL >= 60000)] <- 1
-newtrain <- cbind(train,earnbin)
-newtrain$earnbinf <- as.factor(newtrain$earnbin)
+train$earnbin <- as.factor(train$earnbin)
+validation$earnbin <- as.factor(validation$earnbin)
+test$earnbin <- as.factor(test$earnbin)
 
-newtrain$HEAbin <- NA       ## binning the HEA variable for the training dataset
-newtrain$HEAbin[which(newtrain$HEA=="Excellent")] <- "Good"
-newtrain$HEAbin[which(newtrain$HEA=="Good")] <- "Good"
-newtrain$HEAbin[which(newtrain$HEA=="Very good")] <- "Good"
-newtrain$HEAbin[which(newtrain$HEA=="Fair")] <- "Bad"
-newtrain$HEAbin[which(newtrain$HEA=="Poor")] <- "Bad"
-newtrain$HEAbin <- as.factor(newtrain$HEAbin)
-newtrain <- newtrain[,-1]
+#Fitting base logistic regression model on training data
+logisticfit_base <- glm(earnbin ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP , data = train, family = "binomial")
 
-newtest <- test[,-1]
+#Fitting final logistic regression model on training data
+logisticfit_final <- glm(earnbin ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR*A_MJIND + A_MJIND + A_MJOCC + MOOP + HEAbin, data = train, family = "binomial")
 
-newtest$HEAbin <- NA       ## binning the HEA variable for the testing dataset
-newtest$HEAbin[which(newtest$HEA=="Excellent")] <- "Good"
-newtest$HEAbin[which(newtest$HEA=="Good")] <- "Good"
-newtest$HEAbin[which(newtest$HEA=="Very good")] <- "Good"
-newtest$HEAbin[which(newtest$HEA=="Fair")] <- "Bad"
-newtest$HEAbin[which(newtest$HEA=="Poor")] <- "Bad"
-newtest$HEAbin <- as.factor(newtest$HEAbin)
+#Generating prediction on validation data for the two models
+pred_base <- predict(logisticfit_base, newdata = validation, type = "response")
+pred_final <- predict(logisticfit_final, newdata = validation, type = "response")
 
-newtest$earnbin <- 0   ## binning the test response variable
-newtest$earnbin[which(test$PEARNVAL >= 60000)] <- 1
-newtest$earnbinf <- as.factor(newtest$earnbin)
-newtest <- newtest[,-c(1,14,16)]
-## confirming that levels rae defined the same way between datasets
-levels(newtest$PRDTRACE) <- levels(newtrain$PRDTRACE)
-levels(newtest$A_HGA) <- levels(newtrain$A_HGA)
-levels(newtest$A_MARITL) <- levels(newtrain$A_MARITL)
-levels(newtest$PEHSPNON) <- levels(newtrain$PEHSPNON)
-levels(newtest$MIG_DIV) <- levels(newtrain$MIG_DIV)
-levels(newtest$A_CLSWK) <- levels(newtrain$A_CLSWK)
-levels(newtest$A_MJIND) <- levels(newtrain$A_MJIND)
-levels(newtest$A_MJOCC) <- levels(newtrain$A_MJOCC)
-levels(newtest$HEAbin) <- levels(newtrain$HEAbin)
-## logistic regression model
-binintglm <- glm(earnbin ~ A_AGE + A_SEX + PRDTRACE + A_HGA + A_SEX*A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR*A_MJIND + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, family="binomial")
+#Generate statistics associated to 2 x 2 table for the two models
+stat_base <- confusionMatrix(as.factor(as.numeric(pred_base >= 0.5)), validation$earnbin, positive = "1")
+stat_final <- confusionMatrix(as.factor(as.numeric(pred_final >= 0.5)), validation$earnbin, positive = "1")
 
-## generating predictions from test data
-glm.prob.2 = predict(binintglm, newdata = newtest, type = "response")
-glm.roc.2 = roc(newtest$earnbinf ~ glm.prob.2)
+print(stat_base$overall[1]) #80.26% accuracy for base model in validation set
+print(stat_final$overall[1]) #80.52% accuracy for final model in validation set
 
-em1 <- evalmod(scores = glm.prob.2, labels=newtest$earnbinf)
-```
-The plot below to the left shows the AUC of the ROC curve for the logistic regression model with interaction termsbetween `sex` and `marital status` and between `worker classes` and `major industry`. The plot below to the right shows the AUC of the Precision-Recall (PR) curve for the same logistic regression model. The table below shows the decimal values for each, with about the AUC of the ROC curve being about 79.1% and the AUC of the PR curve being about 59.3%.
-```{r echo = FALSE}
-## generating AUC ROC and AUC PR % and plots
-curves.part1 <- part(em1, xlim = c(0.0, 1))
-paucs.df1 <- pauc(curves.part1)
-knitr::kable(paucs.df1[,-c(1,2,5)])
-autoplot(em1)
+#Generate AUC for the two models
+auc_base <- evalmod(scores = pred_base, labels = validation$earnbin)
+auc_final <- evalmod(scores = pred_final, labels = validation$earnbin)
+
+print(attributes(auc_base)$aucs[1,"aucs"]) #0.8560 AUC under ROC
+print(attributes(auc_final)$aucs[1,"aucs"]) #0.8575 AUC under ROC
 ```
 
 **Random Forest**
 
-When testing the data under random forest models, models without interaction terms were first considered. These were tested to see the optimal number of features to include. Setting the number of features equal to 6 or higher minimized the number of incorrect predictions in the train dataset. Increasing the number of features to values greater than 6 reduced the AUC of the ROC curve. When applying the random forest models to the test dataset, setting the number of features equal to 2 maximized the AUC of the ROC curve. The difference in AUC of the ROC curve between a random forest with 2 features and random forest with 6 features was about 0.008 or 0.8%. The random forest with 6 features was chosen to balance the number of incorrect features against higher AUC of the ROC curve.
+For the random forest model, it was based on the `randomForest` package and we varied the number of variables randomly sampled as candidates at each split (`mtry`). We tried `mtry` from 2 to 10, and `mtry` = 4 had the best accuracy in the validation set. Notice that the difference in accuracy between the model with highest accuracy (`mtry` = 4) and that of lowest accuracy (`mtry` = 9) was only about 0.007 or 0.7%.
 
 ```{r include = FALSE}
-library("randomForest")
-rf6 <- randomForest(earnbinf ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data=newtrain, mtry=6, importance = T)
-rf6.roc = roc(newtrain$earnbinf, rf6$votes[,2], percent=TRUE)
-## generating predictions from test data
-rf.prob.6 <- predict(rf6, newdata=newtest, type="prob")
-em2 <- evalmod(scores = rf.prob.6[,2], labels=newtest$earnbinf)
-```
-The plot below to the left shows the AUC of the ROC curve for the random forest using 6 features. The plot below to the right shows the AUC of the PR curve for the random forest using 6 features. There was an improvement in both AUC of the ROC curve and the PR curve when using the random forest. The table below shows the decimal values for each, with about the AUC of the ROC curve being about 83.5% and the AUC of the PR curve being about 71.5%. The AUC of the ROC curve increased by about 5.6% while the AUC of the PR curve increased by about 20.5% from the logistic regression model to the random forest.
-```{r echo = F}
-## generating AUC ROC and AUC PR % and plots
-curves.part2 <- part(em2, xlim = c(0.0, 1))
-paucs.df2 <- pauc(curves.part2)
-knitr::kable(paucs.df2[,-c(1,2,5)])
-autoplot(em2)
+library(randomForest)
+rflist <- list() #List for holding random forest models (mtry = 2 to 10)
+rfpredlist <- list() #List for holding prediction results on validation set (mtry = 2 to 10)
+accuracy <- rep(NA, 10) #Vector for holding accuracy values on validation set (mtry = 2 to 10)
+
+############ Running this markdown block can be skipped to save time, load RDS data instead ############
+for (i in 2:10) {
+  set.seed(20201215)
+  #Fitting random forest models on training data
+  rflist[[i]] <- randomForest(earnbin ~ A_AGE + PRDTRACE + A_SEX + A_HGA + A_MARITL + PEHSPNON + MIG_DIV + 
+                                A_USLHRS + A_CLSWKR + A_MJIND + A_MJOCC + MOOP + HEAbin, data = train,
+                              mtry = i, importance = T)
+}
+
+for (i in 2:10) {
+  #Generating prediction on validation data for the random forest models
+  rfpredlist[[i]] <- predict(rflist[[i]], newdata = validation, type = "class")
+}
+
+for (i in 2:10) {
+  #Calculate the accuracy for the random forest models
+  accuracy[i] <- confusionMatrix(rfpredlist[[i]], validation$earnbin, positive = "1")$overall[1]
+}
+
+saveRDS(rflist, "rflist.RDS")
+saveRDS(rfpredlist, "rfpredlist.RDS")
+saveRDS(accuracy, "accuracy.RDS")
 ```
 
+```{r include = FALSE}
+############ Results from above were saved in RDS and can be loaded directly for convenience ############
+rflist <- readRDS("rflist.RDS")
+rfpredlist <- readRDS("rfpredlist.RDS")
+accuracy <- readRDS("accuracy.RDS")
+
+print(which.max(accuracy)) #mtry = 4 gives the maximum accuracy in validation set
+print(max(accuracy, na.rm = TRUE)) #80.06% accuracy
+
+print(which.min(accuracy)) #mtry = 9 gives the minimum accuracy in validation set
+print(min(accuracy, na.rm = TRUE)) #79.33% accuracy
+```
+**XGBoost**
+
+We used the `xgboost` package for the XGBoost tree booster model. We tried a wide range of tuning parameters, which included the learning rate `eta` = 0.025, 0.05, 0.1 and 0.3, the maximum depth of a tree `max_depth` from 2 to 6, and varied the number of boosting iterations from 300 to 1000. The model with learning rate 0.025, maximum depth of a tree = 6 and number of boosting itearions = 300 was chosen as it had the lowest validation error (18.63%) amongst all the parameter grids we searched. In other words, the XGBoost model achieved an accuracy of 81.37% in the validation set.
+```{r include = FALSE}
+library(dummies)
+library(varhandle)
+library(xgboost)
+train <- train[,-c(1,2)]
+validation <- validation[,-c(1,2)]
+test <- test[,-c(1,2)]
+
+#Creates covariate matrix objects that fulfill XGBoost requirement (data matrix)
+new_tr <- dummy.data.frame(train[,-14]) #Training
+new_va <- dummy.data.frame(validation[,-14]) #Validation
+new_va2 <- subset(new_va, select = colnames(new_tr)) #Validation with columns arranged in same order
+new_te <- dummy.data.frame(test[,-14]) #Testing
+new_te2 <- subset(new_te, select = colnames(new_te)) #Testing with columns arranged in same order
+
+dtrain <- xgb.DMatrix(data.matrix(new_tr), label = unfactor(train[,14]))
+dvalid <- xgb.DMatrix(data.matrix(new_va2), label = unfactor(validation[,14]))
+dtest <- xgb.DMatrix(data.matrix(new_te2), label = unfactor(test[,14]))
+
+#Final sets of parameter: max_depth = 6, eta = 0.025 we landed on after tuning
+param <- list(max_depth = 6, eta = 0.025, verbose = 1, nthread = 2,
+              objective = "binary:logistic", eval_metric = "error")
+
+#watchlist allows printing of training and validation error while running the model 
+watchlist <- list(train = dtrain, eval = dvalid)
+
+set.seed(20201215)
+############ Running this line can be skipped to save time, load RDS data instead ############
+bst <- xgb.train(params = param, data = dtrain, nrounds = 300, watchlist = watchlist)
+
+saveRDS(bst, "bst.RDS")
+```
+
+```{r include = FALSE}
+############ Results from above were saved in RDS and can be loaded directly for convenience ############
+bst <- readRDS("bst.RDS")
+print(bst$evaluation_log$eval_error[300]) #18.63% error, i.e. 81.37% accuracy
+```
 ## 4. Result
 
 ***Feature Importance***
 
 
 ***Model Comparison***
-
 
 
 
