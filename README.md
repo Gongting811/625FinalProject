@@ -10,11 +10,13 @@ The models we used for this classification problem are Logistic Regression, Rand
 
 ## Usage
 
-Since there is a large file rlist.RDS, please use the following command to clone the full project with all files:
+Since there is a large file, rlist.RDS, that is uploaded through ```lfs```, please use the following command to clone the full project with all files:
 
 ```bash=T
 git lfs clone https://github.com/Gongting811/625FinalProject.git 625FinalProject
 ```
+
+If you do not have ```lfs``` installed, please refer to https://git-lfs.github.com/ and install ```git lfs``` first.
 
 ## Contribution
 
