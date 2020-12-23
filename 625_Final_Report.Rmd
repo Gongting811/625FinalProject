@@ -228,6 +228,8 @@ print(max(accuracy, na.rm = TRUE)) #80.06% accuracy
 
 print(which.min(accuracy)) #mtry = 9 gives the minimum accuracy in validation set
 print(min(accuracy, na.rm = TRUE)) #79.33% accuracy
+
+mtry <- which.max(accuracy) #selected mtry parameter, saved for later use for testing final model
 ```
 **XGBoost**
 
@@ -276,13 +278,30 @@ print(bst$evaluation_log$eval_error[300]) #18.63% error, i.e. 81.37% accuracy
 
 
 ```{r include = FALSE}
-rfimp <- data.frame(rownames(rflist[[6]]$importance), rflist[[6]]$importance[,"MeanDecreaseAccuracy"])
+#Dataframe for plotting variance importance
+rfimp <- data.frame(rownames(rflist[[mtry]]$importance), rflist[[mtry]]$importance[,"MeanDecreaseAccuracy"])
 colnames(rfimp) <- c("VariableNames", "MeanDecreaseAccuracy")
 ggplot(rfimp, aes(x = MeanDecreaseAccuracy, y = reorder(VariableNames, MeanDecreaseAccuracy))) + geom_bar(stat = "identity") + labs(title = "Variable Importance Plot", x = "Mean decrease accuracy", y = "Predictors")
 ```
 
 ***Model Comparison***
+```{r include = FALSE}
+#Generating prediction on test data based on selected models
 
+#Logistic regression
+pred_logistic <- predict(logisticfit_final, newdata = test, type = "response")
+stat_logistic <- confusionMatrix(as.factor(as.numeric(pred_logistic >= 0.5)), test$earnbin, positive = "1")
+print(stat_logistic$overall[1]) #80.04% accuracy for logistic regression
+
+#Random forest
+pred_rf <- predict(rflist[[mtry]], newdata = test, type = "class")
+stat_rf <- confusionMatrix(pred_rf, test$earnbin, positive = "1")
+print(stat_rf$overall[1]) #80.06% accuracy for random forest
+
+#XGBoost
+stat_xgboost <- confusionMatrix(as.factor(as.numeric(predict(bst, dtest) >= 0.5)), test$earnbin, positive = "1")
+print(stat_xgboost$overall[1]) #80.98% accuracy for XGBoost
+```
 
 
 
