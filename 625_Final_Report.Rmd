@@ -275,6 +275,12 @@ print(bst$evaluation_log$eval_error[300]) #18.63% error, i.e. 81.37% accuracy
 ***Feature Importance***
 
 
+```{r include = FALSE}
+rfimp <- data.frame(rownames(rflist[[6]]$importance), rflist[[6]]$importance[,"MeanDecreaseAccuracy"])
+colnames(rfimp) <- c("VariableNames", "MeanDecreaseAccuracy")
+ggplot(rfimp, aes(x = MeanDecreaseAccuracy, y = reorder(VariableNames, MeanDecreaseAccuracy))) + geom_bar(stat = "identity") + labs(title = "Variable Importance Plot", x = "Mean decrease accuracy", y = "Predictors")
+```
+
 ***Model Comparison***
 
 
