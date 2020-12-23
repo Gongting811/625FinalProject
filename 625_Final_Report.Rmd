@@ -147,8 +147,6 @@ Several models and interaction terms were considered for logistic regression. Th
 
 ```{r include = FALSE}
 library(caret)
-#library(gridExtra)
-#library(pROC)
 library(precrec)
 train <- read.csv("train.csv")
 validation <- read.csv("validation.csv")
@@ -261,21 +259,16 @@ param <- list(max_depth = 6, eta = 0.025, verbose = 1, nthread = 2,
 watchlist <- list(train = dtrain, eval = dvalid)
 
 set.seed(20201215)
-############ Running this line can be skipped to save time, load RDS data instead ############
+#Fitting XGBoost on training data based on selected tuning parameters
 bst <- xgb.train(params = param, data = dtrain, nrounds = 300, watchlist = watchlist)
-
+print(bst$evaluation_log$eval_error[300]) #18.63% error, i.e. 81.37% accuracy
 saveRDS(bst, "bst.RDS")
 ```
 
-```{r include = FALSE}
-############ Results from above were saved in RDS and can be loaded directly for convenience ############
-bst <- readRDS("bst.RDS")
-print(bst$evaluation_log$eval_error[300]) #18.63% error, i.e. 81.37% accuracy
-```
 ## 4. Result
 
 ***Feature Importance***
-
+Based on our training data, we found that the `major occupation` feature was most important with about 0.036 mean decrease in accuracy when `major occupation` is permuted after training and before prediction, while the `health status` feature was least important with about 0.0005 mean decrease in accuracy when it is permuted according to the results of our random forest model. The `academic degree` and `working hours` were second and third most important, both with about 0.023 mean decrease in accuracy. `age`, `total medical expenditures`, `major industry`, and `sex` each had mean decrease in accuracy ranging from about 0.016 to 0.012, while all other features had mean decrease in accuracy less than 0.01.
 
 ```{r include = FALSE}
 #Dataframe for plotting variance importance
@@ -285,7 +278,11 @@ ggplot(rfimp, aes(x = MeanDecreaseAccuracy, y = reorder(VariableNames, MeanDecre
 ```
 
 ***Model Comparison***
+Finally, we applied the previously learned models to the test data to get a relatively unbiased evaluation of each model. The prediction accuracy of logistic regression, random forest and XGBoost models on the test data were 80.04%, 80.06% and 80.98%, respectively. Similar result could also be seen in the ROC curve comparing the three methods. We can see that there is a huge overlap between the logistic regression and random forest and XGBoost has only a tiny margin above the two methods. Indeed, the corresponding AUC for logistic regression, random forest and XGBoost are 0.8476, 0.8450 and 0.8593. Notice that random forest had an even worse performance when measured using AUC.
 ```{r include = FALSE}
+library(pROC)
+library(RColorBrewer)
+
 #Generating prediction on test data based on selected models
 
 #Logistic regression
@@ -301,8 +298,31 @@ print(stat_rf$overall[1]) #80.06% accuracy for random forest
 #XGBoost
 stat_xgboost <- confusionMatrix(as.factor(as.numeric(predict(bst, dtest) >= 0.5)), test$earnbin, positive = "1")
 print(stat_xgboost$overall[1]) #80.98% accuracy for XGBoost
-```
 
+#Obtain ROC curves objects (contains AUC) for models
+logistic_roc <- roc(test$earnbin ~ pred_logistic)
+pred_rf2 <- predict(rflist[[mtry]], newdata = test, type = "prob")
+rf_roc <- roc(test$earnbin ~ as.data.frame(pred_rf2)[,2])
+xgboost_roc <- roc(test$earnbin ~ predict(bst, dtest))
+
+print(logistic_roc) #AUC = 0.8476
+print(rf_roc) #AUC = 0.845
+print(xgboost_roc) #AUC = 0.8593
+
+#Extract sensitivity and specificity for models
+logistic_df <- data.frame(logistic_roc$specificities, logistic_roc$sensitivities, "Logistic Regression")
+rf_df <- data.frame(rf_roc$specificities, rf_roc$sensitivities, "Random Forest")
+xgboost_df <- data.frame(xgboost_roc$specificities, xgboost_roc$sensitivities, "XGBoost")
+
+#Set common column names before merging
+colnames(logistic_df) <- c("Specificity", "Sensitivity", "Methods")
+colnames(rf_df) <- c("Specificity", "Sensitivity", "Methods")
+colnames(xgboost_df) <- c("Specificity", "Sensitivity", "Methods")
+
+#Merge the roc curve values into one dataframe for plotting
+roc_df <- rbind(logistic_df, rf_df, xgboost_df)
+ggplot(roc_df) + geom_line(aes(x = 1 - Specificity, y = Sensitivity, color = Methods)) + labs(title = "ROC curve") + scale_color_manual(values = ("#CC79A7", "#E69F00", "#56B4E9"))
+```
 
 
 
